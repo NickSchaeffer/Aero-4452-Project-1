@@ -119,3 +119,37 @@ def CW_solve(n,t,dr0,dv0):
     dr = phi_rr@dr0 + phi_rv@dv0
     dv = phi_vr@dr0 +phi_vv@dv0
     return dr,dv
+
+def mean_to_true_anomaly(M_deg, e, tol=1e-10, max_iter=200):
+    M = np.radians(M_deg)
+    E = M if e < 0.8 else np.pi
+
+    for _ in range(max_iter):
+        f = E - e * np.sin(E) - M
+        f_prime = 1 - e * np.cos(E)
+        dE = f / f_prime
+        E -= dE
+        if abs(dE) < tol:
+            break
+    theta = 2 * np.arctan2(np.sqrt(1 + e) * np.sin(E / 2),
+                            np.sqrt(1 - e) * np.cos(E / 2))
+    theta_deg = np.degrees(theta) % 360
+    return theta_deg
+
+def tle2coes(filename):
+    with open(filename, "r") as f:
+        lines = [line.rstrip("\n") for line in f if line.strip()]
+
+    line1 = lines[0]
+    line2 = lines[1]
+
+    date = line1[18:32].strip() 
+    inc = float(line2[8:16])             
+    RAAN = float(line2[17:25])           
+    ecc = float("0." + line2[26:33].strip())  
+    omega = float(line2[34:42])         
+    M = float(line2[43:51])             
+    n = float(line2[52:63])              
+    theta = mean_to_true_anomaly(M, ecc)
+
+    return inc, RAAN, ecc, omega, theta, n, date
